@@ -1,0 +1,1079 @@
+<title>Game Timer</title>
+<style>
+  :root{
+    --bg: #f2f3f5;
+    --surface: #ffffff;
+    --surface-2: #e7e9ec;
+    --ink: #16181c;
+    --ink-dim: #676d78;
+    --line: #dadde2;
+    --accent: #3b74d6;
+    --accent-ink: #ffffff;
+    --danger: #b3432c;
+    --radius: 20px;
+    --num-font: 'Sora', 'Arial Narrow', sans-serif;
+    --ui-font: 'Manrope', system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg: #0e0f11;
+      --surface: #17181b;
+      --surface-2: #202226;
+      --ink: #f3f4f6;
+      --ink-dim: #9aa0aa;
+      --line: #2a2c31;
+      --accent: #5b93ec;
+      --accent-ink: #0c1220;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: #0e0f11;
+    --surface: #17181b;
+    --surface-2: #202226;
+    --ink: #f3f4f6;
+    --ink-dim: #9aa0aa;
+    --line: #2a2c31;
+    --accent: #5b93ec;
+    --accent-ink: #0c1220;
+  }
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--ui-font);
+    min-height:100%;
+    padding-inline:0;
+    overflow-x:hidden;
+  }
+  html,body{height:100%;}
+  button{font-family:inherit;}
+  .app{
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+    max-width:640px;
+    margin:0 auto;
+    position:relative;
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    position:absolute;
+    top:0;left:0;right:0;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 18px;
+    z-index:6;
+    background:transparent;
+    color:var(--ink);
+    transition:color .3s ease;
+  }
+  .iconbtn{
+    width:42px;height:42px;
+    border-radius:12px;
+    border:none;
+    background:transparent;
+    color:inherit;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+  }
+  .iconbtn:hover{background:color-mix(in srgb, currentColor 12%, transparent);}
+  .iconbtn svg{width:22px;height:22px;}
+  .brand{
+    font-weight:800;
+    letter-spacing:.02em;
+    font-size:14px;
+    text-transform:uppercase;
+    color:inherit;
+  }
+
+  /* ---------- Timer screen ---------- */
+  .timer-screen{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    padding-top:60px;
+  }
+  .fill-stage{
+    position:absolute;
+    inset:0;
+    overflow:hidden;
+    z-index:0;
+  }
+  .fill{
+    position:absolute;
+    left:0;right:0;bottom:0;
+    background:var(--accent);
+    transition:height .25s linear, background-color .3s ease;
+    height:100%;
+  }
+  .players-strip{
+    position:relative;
+    z-index:2;
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:8px;
+    padding:2px 18px 12px;
+  }
+  .player-chip{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    gap:7px;
+    max-width:100%;
+    padding:7px 14px 7px 9px;
+    border-radius:999px;
+    border:1.5px solid var(--line);
+    background:var(--surface);
+    color:var(--ink-dim);
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .player-chip span.label{overflow:hidden;text-overflow:ellipsis;}
+  .player-chip .dot{
+    width:12px;height:12px;border-radius:50%;flex:0 0 auto;
+  }
+  .player-chip.active{
+    color:var(--accent-ink);
+    border-color:transparent;
+    box-shadow:0 2px 10px rgba(0,0,0,.15);
+  }
+
+  .center-stack{
+    flex:1;
+    position:relative;
+    z-index:2;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:20px 18px;
+  }
+  .digits{
+    font-family:var(--num-font);
+    font-weight:700;
+    font-variant-numeric:tabular-nums;
+    font-size:clamp(88px, 26vw, 168px);
+    line-height:1;
+    letter-spacing:-.01em;
+    color:var(--ink);
+    user-select:none;
+    display:flex;
+    align-items:baseline;
+  }
+  .digits .colon{
+    margin:0 .02em;
+    opacity:.75;
+    transform:translateY(-.05em);
+  }
+  .subtime{
+    font-size:14px;
+    color:var(--ink-dim);
+    font-weight:600;
+    min-height:18px;
+  }
+
+  .controls{
+    position:relative;
+    z-index:2;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:22px;
+    padding:10px 18px calc(30px + env(safe-area-inset-bottom, 0px));
+  }
+  .ctl-btn{
+    width:74px;height:74px;
+    border-radius:50%;
+    border:2px solid transparent;
+    background:var(--surface);
+    color:var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    box-shadow:0 4px 16px rgba(0,0,0,.12);
+    transition:transform .1s ease, border-color .2s ease, color .2s ease;
+  }
+  .ctl-btn:active{transform:scale(.94);}
+  .ctl-btn svg{width:28px;height:28px;}
+  .ctl-btn.primary{
+    width:88px;height:88px;
+    background:var(--accent);
+    color:var(--accent-ink);
+    border-color:transparent;
+  }
+  .ctl-btn.primary svg{width:32px;height:32px;}
+
+  /* ---------- Settings screen ---------- */
+  .settings-screen{
+    flex:1;
+    padding:64px 18px calc(36px + env(safe-area-inset-bottom, 0px));
+    display:flex;
+    flex-direction:column;
+    gap:26px;
+    background:var(--bg);
+    position:relative;
+    z-index:1;
+  }
+  .settings-title{
+    font-size:26px;
+    font-weight:800;
+    letter-spacing:-.01em;
+    margin:6px 0 -6px;
+  }
+  .section{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .section h3{
+    margin:0;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:.07em;
+    color:var(--ink-dim);
+    font-weight:800;
+  }
+  .row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .row-label{font-size:15px;font-weight:600;}
+  .row-sub{font-size:12.5px;color:var(--ink-dim);margin-top:2px;}
+
+  .time-picker{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:18px;
+    padding:6px 0 2px;
+  }
+  .tp-col{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .tp-value{
+    font-family:var(--num-font);
+    font-size:44px;
+    font-weight:700;
+    font-variant-numeric:tabular-nums;
+    width:2.2ch;
+    text-align:center;
+    border:none;
+    background:transparent;
+    color:var(--ink);
+    padding:2px 0;
+    border-radius:8px;
+    -moz-appearance:textfield;
+  }
+  .tp-value::-webkit-outer-spin-button,
+  .tp-value::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .tp-value:focus{outline:2px solid var(--accent);outline-offset:2px;background:var(--surface-2);}
+  .tp-unit{font-size:11px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.08em;font-weight:700;}
+  .tp-arrows{display:flex;flex-direction:column;gap:4px;}
+  .step-btn{
+    width:34px;height:28px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:var(--surface-2);
+    color:var(--ink);
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .step-btn:active{transform:scale(.92);}
+  .tp-sep{font-family:var(--num-font);font-size:38px;font-weight:700;color:var(--ink-dim);align-self:flex-start;margin-top:4px;}
+
+  .toggle{
+    width:48px;height:28px;
+    border-radius:999px;
+    border:none;
+    background:var(--surface-2);
+    position:relative;
+    cursor:pointer;
+    flex:0 0 auto;
+    transition:background .2s ease;
+  }
+  .toggle.on{background:var(--accent);}
+  .toggle::after{
+    content:"";
+    position:absolute;
+    top:3px;left:3px;
+    width:22px;height:22px;
+    border-radius:50%;
+    background:var(--surface);
+    transition:transform .2s ease;
+    box-shadow:0 1px 3px rgba(0,0,0,.3);
+  }
+  .toggle.on::after{transform:translateX(20px);}
+
+  .stepper{
+    display:flex;align-items:center;gap:10px;
+  }
+  .stepper .val{
+    font-weight:800;
+    font-variant-numeric:tabular-nums;
+    width:2ch;
+    text-align:center;
+    font-size:16px;
+  }
+
+  .players-list{display:flex;flex-direction:column;gap:8px;}
+  .player-row{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 4px;
+  }
+  .color-dot{
+    width:26px;height:26px;border-radius:50%;
+    border:2px solid var(--surface);
+    box-shadow:0 0 0 1.5px var(--line);
+    flex:0 0 auto;
+    padding:0;cursor:pointer;
+    position:relative;
+    overflow:hidden;
+  }
+  .color-dot input[type=color]{
+    position:absolute;inset:-4px;
+    width:calc(100% + 8px);height:calc(100% + 8px);
+    border:none;padding:0;cursor:pointer;
+    opacity:0;
+  }
+  .player-name{
+    flex:1;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:9px 11px;
+    color:var(--ink);
+    font-size:14px;
+    font-weight:600;
+    min-width:0;
+  }
+  .player-name:focus{outline:2px solid var(--accent);outline-offset:1px;}
+
+  .theme-row{display:flex;gap:8px;}
+  .theme-opt{
+    flex:1;
+    padding:10px;
+    border-radius:12px;
+    border:1.5px solid var(--line);
+    background:var(--surface-2);
+    color:var(--ink-dim);
+    font-weight:700;
+    font-size:13px;
+    cursor:pointer;
+    text-align:center;
+  }
+  .theme-opt.active{
+    border-color:var(--accent);
+    color:var(--ink);
+    background:color-mix(in srgb, var(--accent) 14%, var(--surface-2));
+  }
+
+  .divider{
+    height:1px;
+    background:var(--line);
+    margin:2px 0;
+    border:none;
+  }
+
+  [hidden]{display:none!important;}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@700;800&family=Manrope:wght@500;600;700;800&display=swap">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="theme-color" content="#3b74d6">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Game Timer">
+
+<div class="app" id="app">
+
+  <div class="topbar" id="topbar">
+    <button class="iconbtn" id="menuBtn" aria-label="Ajustes">
+      <svg id="menuIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+    </button>
+    <span class="brand" id="brandText">Game Timer</span>
+    <button class="iconbtn" id="soundIndicator" aria-label="Sonido">
+      <svg id="soundIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></svg>
+    </button>
+  </div>
+
+  <!-- TIMER SCREEN -->
+  <div class="timer-screen" id="timerScreen">
+    <div class="fill-stage"><div class="fill" id="fillEl"></div></div>
+
+    <div class="players-strip" id="playersStrip" hidden></div>
+
+    <div class="center-stack">
+      <div class="digits" id="digits">08<span class="colon">:</span>00</div>
+      <div class="subtime" id="subtime"></div>
+    </div>
+
+    <div class="controls">
+      <button class="ctl-btn" id="resetBtn" aria-label="Reiniciar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+      </button>
+      <button class="ctl-btn primary" id="playBtn" aria-label="Iniciar">
+        <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <button class="ctl-btn" id="nextTurnBtn" aria-label="Siguiente turno" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="18" y2="12"/><polyline points="12 6 18 12 12 18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- SETTINGS SCREEN -->
+  <div class="settings-screen" id="settingsScreen" hidden>
+    <div class="settings-title">Ajustes</div>
+
+    <div class="section">
+      <h3>Duración</h3>
+      <div class="time-picker">
+        <div class="tp-col">
+          <div class="tp-arrows"><button class="step-btn" data-step="min" data-dir="1">▲</button></div>
+          <input class="tp-value" id="minVal" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" value="08" aria-label="Minutos">
+          <div class="tp-arrows"><button class="step-btn" data-step="min" data-dir="-1">▼</button></div>
+          <div class="tp-unit">min</div>
+        </div>
+        <div class="tp-sep">:</div>
+        <div class="tp-col">
+          <div class="tp-arrows"><button class="step-btn" data-step="sec" data-dir="1">▲</button></div>
+          <input class="tp-value" id="secVal" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" value="00" aria-label="Segundos">
+          <div class="tp-arrows"><button class="step-btn" data-step="sec" data-dir="-1">▼</button></div>
+          <div class="tp-unit">seg</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Comportamiento</h3>
+      <div class="row">
+        <div>
+          <div class="row-label">Reinicio automático</div>
+          <div class="row-sub">Al llegar a cero, vuelve a empezar sola</div>
+        </div>
+        <button class="toggle" id="autoRestartToggle"></button>
+      </div>
+      <hr class="divider">
+      <div class="row">
+        <div class="row-label">Sonido de alerta</div>
+        <button class="toggle" id="soundToggle"></button>
+      </div>
+      <div class="row" id="soundThresholdRow">
+        <div>
+          <div class="row-label">Empezar a sonar en los últimos</div>
+        </div>
+        <div class="stepper">
+          <button class="step-btn" id="threshMinus">−</button>
+          <div class="val" id="threshVal">10</div>
+          <button class="step-btn" id="threshPlus">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Jugadores</h3>
+      <div class="row">
+        <div class="row-label">Cantidad</div>
+        <div class="stepper">
+          <button class="step-btn" id="playersMinus">−</button>
+          <div class="val" id="playersVal">1</div>
+          <button class="step-btn" id="playersPlus">+</button>
+        </div>
+      </div>
+      <div class="players-list" id="playersList"></div>
+      <hr class="divider">
+      <div class="row">
+        <div>
+          <div class="row-label">Modo ajedrez</div>
+          <div class="row-sub">Los tiempos no se reinician al pasar de turno</div>
+        </div>
+        <button class="toggle" id="chessModeToggle"></button>
+      </div>
+      <div class="row" id="chessIncrementRow">
+        <div class="row-label">Incremento por turno</div>
+        <div class="stepper">
+          <button class="step-btn" id="incMinus">−</button>
+          <div class="val" id="incVal">5</div>
+          <button class="step-btn" id="incPlus">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Tema</h3>
+      <div class="theme-row">
+        <button class="theme-opt" data-theme="light">Claro</button>
+        <button class="theme-opt" data-theme="system">Sistema</button>
+        <button class="theme-opt" data-theme="dark">Oscuro</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var LS_KEY = "mesa-timer-state-v1";
+
+  var playerColors = ["#3b74d6","#d9752f","#5fa860","#b3432c","#8b5fbf","#c9a13a","#3ba39a","#d0578e"];
+
+  var state = {
+    minutes: 8, seconds: 0,
+    autoRestart: false,
+    playersCount: 1,
+    players: [ {name:"Jugador 1", color: playerColors[0]} ],
+    soundOn: true,
+    soundThreshold: 10,
+    theme: "system",
+    chessMode: false,
+    chessIncrement: 5
+  };
+
+  function load(){
+    try{
+      var raw = localStorage.getItem(LS_KEY);
+      if(raw){
+        var saved = JSON.parse(raw);
+        Object.assign(state, saved);
+      }
+    }catch(e){}
+  }
+  function save(){
+    try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){}
+  }
+  load();
+  while(state.players.length < state.playersCount){
+    state.players.push({name:"Jugador "+(state.players.length+1), color: playerColors[state.players.length % playerColors.length]});
+  }
+
+  // ---------- Runtime (not persisted) ----------
+  var totalMs = (state.minutes*60 + state.seconds) * 1000;
+  var remainingMs = totalMs;
+  var secondsOnlyMode = state.minutes === 0;
+  var running = false;
+  var rafId = null;
+  var lastTick = null;
+  var currentPlayerIdx = 0;
+  var alertPlaying = false;
+  var audioCtx = null;
+  var beepInterval = null;
+  var playerRemaining = []; // per-player ms, used when chessMode is on
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  var digitsEl = $("digits"), fillEl = $("fillEl"),
+      subtime = $("subtime"), playBtn = $("playBtn"), playIcon = $("playIcon"),
+      resetBtn = $("resetBtn"), playersStrip = $("playersStrip"), nextTurnBtn = $("nextTurnBtn"),
+      settingsScreen = $("settingsScreen"), timerScreen = $("timerScreen"), menuBtn = $("menuBtn"),
+      soundIcon = $("soundIcon"), topbar = $("topbar"), brandText = $("brandText");
+
+  function applyTheme(){
+    var root = document.documentElement;
+    if(state.theme === "light") root.setAttribute("data-theme","light");
+    else if(state.theme === "dark") root.setAttribute("data-theme","dark");
+    else root.removeAttribute("data-theme");
+    updateControlColors();
+  }
+
+  function fmt2(n){ return (n<10? "0":"")+n; }
+
+  function renderDigits(ms){
+    var totalSec = Math.ceil(ms/1000);
+    if(totalSec < 0) totalSec = 0;
+    if(secondsOnlyMode){
+      digitsEl.innerHTML = fmt2(totalSec);
+      return;
+    }
+    var mm = Math.floor(totalSec/60);
+    var ss = totalSec%60;
+    digitsEl.innerHTML = fmt2(mm) + '<span class="colon">:</span>' + fmt2(ss);
+  }
+
+  function activePlayer(){
+    return state.players[currentPlayerIdx] || state.players[0];
+  }
+
+  function toHex(c){
+    if(/^#/.test(c)) return c;
+    var m = c.match(/\d+/g);
+    if(!m) return "#000000";
+    return "#" + m.slice(0,3).map(function(n){ return (+n).toString(16).padStart(2,"0"); }).join("");
+  }
+
+  function activeColorHex(){
+    if(state.playersCount > 1) return activePlayer().color;
+    var cs = getComputedStyle(document.documentElement);
+    return toHex(cs.getPropertyValue("--accent").trim());
+  }
+
+  function contrastColor(hex){
+    hex = hex.replace("#","");
+    if(hex.length === 3) hex = hex.split("").map(function(c){ return c+c; }).join("");
+    var r = parseInt(hex.substr(0,2),16), g = parseInt(hex.substr(2,2),16), b = parseInt(hex.substr(4,2),16);
+    var lum = (0.299*r + 0.587*g + 0.114*b) / 255;
+    return lum > 0.6 ? "#1a1a1a" : "#ffffff";
+  }
+
+  function updateControlColors(){
+    var c = activeColorHex();
+    var txt = contrastColor(c);
+    playBtn.style.background = c;
+    playBtn.style.color = txt;
+    resetBtn.style.borderColor = c;
+    resetBtn.style.color = c;
+    nextTurnBtn.style.borderColor = c;
+    nextTurnBtn.style.color = c;
+  }
+
+  function updateFill(){
+    var pct = totalMs > 0 ? Math.max(0, Math.min(1, remainingMs/totalMs)) : 0;
+    fillEl.style.height = (pct*100) + "%";
+    fillEl.style.background = activeColorHex();
+    updateControlColors();
+    updateTopbarColor();
+  }
+
+  function updateTopbarColor(){
+    if(!settingsScreen.hidden){
+      topbar.style.color = "";
+      return;
+    }
+    topbar.style.color = contrastColor(activeColorHex());
+  }
+
+  function updateSubtime(){
+    subtime.textContent = state.autoRestart ? "Reinicio automático activado" : "";
+  }
+
+  function renderPlayersStrip(){
+    playersStrip.innerHTML = "";
+    if(state.playersCount <= 1){
+      playersStrip.hidden = true;
+      nextTurnBtn.hidden = true;
+      return;
+    }
+    playersStrip.hidden = false;
+    nextTurnBtn.hidden = false;
+    state.players.forEach(function(p, i){
+      var chip = document.createElement("div");
+      chip.className = "player-chip" + (i===currentPlayerIdx ? " active":"");
+      if(i===currentPlayerIdx){
+        chip.style.background = p.color;
+        chip.style.color = contrastColor(p.color);
+        chip.style.borderColor = "transparent";
+      }
+      chip.innerHTML = '<span class="dot" style="background:'+p.color+'"></span><span class="label">' + escapeHtml(p.name) + '</span>';
+      chip.addEventListener("click", function(){
+        selectPlayer(i);
+      });
+      playersStrip.appendChild(chip);
+    });
+  }
+
+  function selectPlayer(i){
+    if(state.chessMode){
+      playerRemaining[currentPlayerIdx] = remainingMs;
+      currentPlayerIdx = i;
+      remainingMs = playerRemaining[currentPlayerIdx];
+      lastTick = null;
+      renderDigits(remainingMs);
+      updateFill();
+      renderPlayersStrip();
+    } else {
+      currentPlayerIdx = i;
+      resetTurn(false);
+    }
+  }
+
+  function escapeHtml(s){
+    var d = document.createElement("div"); d.textContent = s; return d.innerHTML;
+  }
+
+  function setPlayIcon(isPlaying){
+    playIcon.innerHTML = isPlaying
+      ? '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>'
+      : '<path d="M8 5v14l11-7z"/>';
+  }
+
+  function tick(ts){
+    if(!running) return;
+    if(lastTick == null) lastTick = ts;
+    var dt = ts - lastTick;
+    lastTick = ts;
+    remainingMs -= dt;
+    if(remainingMs <= 0){
+      remainingMs = 0;
+      renderDigits(0);
+      updateFill();
+      handleAlertCheck();
+      onTimeUp();
+      return;
+    }
+    renderDigits(remainingMs);
+    updateFill();
+    handleAlertCheck();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function onTimeUp(){
+    running = false;
+    setPlayIcon(false);
+    stopBeeping();
+    playChime();
+    if(state.chessMode){
+      playerRemaining[currentPlayerIdx] = 0;
+      return; // time's up for this player; game stays paused, no auto-restart
+    }
+    if(state.autoRestart){
+      setTimeout(function(){
+        if(state.playersCount > 1){
+          currentPlayerIdx = (currentPlayerIdx+1) % state.players.length;
+        }
+        resetTurn(true);
+      }, 350);
+    }
+  }
+
+  function handleAlertCheck(){
+    if(!state.soundOn) return;
+    var shouldBeep = remainingMs <= state.soundThreshold*1000 && remainingMs > 0;
+    if(shouldBeep && !alertPlaying){
+      startBeeping();
+    } else if(!shouldBeep && alertPlaying){
+      stopBeeping();
+    }
+  }
+
+  function ensureAudio(){
+    if(!audioCtx){
+      try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){}
+    }
+    if(audioCtx && audioCtx.state === "suspended"){ audioCtx.resume(); }
+    return audioCtx;
+  }
+
+  function beep(freq, dur){
+    var ctx = ensureAudio();
+    if(!ctx) return;
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    gain.gain.value = 0.0001;
+    osc.connect(gain); gain.connect(ctx.destination);
+    var now = ctx.currentTime;
+    gain.gain.exponentialRampToValueAtTime(0.22, now+0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now+dur);
+    osc.start(now);
+    osc.stop(now+dur+0.02);
+  }
+
+  function startBeeping(){
+    alertPlaying = true;
+    beep(880, 0.12);
+    beepInterval = setInterval(function(){ beep(880, 0.12); }, 1000);
+  }
+  function stopBeeping(){
+    alertPlaying = false;
+    if(beepInterval){ clearInterval(beepInterval); beepInterval = null; }
+  }
+  function playChime(){
+    beep(660, 0.15);
+    setTimeout(function(){ beep(990, 0.22); }, 130);
+  }
+
+  function computeTotal(){
+    totalMs = (state.minutes*60 + state.seconds) * 1000;
+    if(totalMs <= 0) totalMs = 1000;
+    secondsOnlyMode = state.minutes === 0;
+  }
+
+  function resetTurn(autoStart){
+    running = false;
+    stopBeeping();
+    lastTick = null;
+    computeTotal();
+    remainingMs = totalMs;
+    if(state.chessMode){
+      playerRemaining = state.players.map(function(){ return totalMs; });
+    }
+    renderDigits(remainingMs);
+    updateFill();
+    renderPlayersStrip();
+    setPlayIcon(false);
+    if(autoStart){ startTimer(); }
+  }
+
+  function startTimer(){
+    if(running) return;
+    ensureAudio();
+    running = true;
+    lastTick = null;
+    setPlayIcon(true);
+    rafId = requestAnimationFrame(tick);
+  }
+  function pauseTimer(){
+    running = false;
+    setPlayIcon(false);
+    stopBeeping();
+    if(rafId) cancelAnimationFrame(rafId);
+  }
+
+  playBtn.addEventListener("click", function(){
+    if(running) pauseTimer(); else startTimer();
+  });
+  resetBtn.addEventListener("click", function(){
+    resetTurn(false);
+  });
+  nextTurnBtn.addEventListener("click", function(){
+    if(state.chessMode){
+      playerRemaining[currentPlayerIdx] = Math.max(0, remainingMs) + state.chessIncrement*1000;
+      currentPlayerIdx = (currentPlayerIdx+1) % state.players.length;
+      remainingMs = playerRemaining[currentPlayerIdx];
+      lastTick = null;
+      renderDigits(remainingMs);
+      updateFill();
+      renderPlayersStrip();
+      if(remainingMs > 0 && running){
+        setPlayIcon(true);
+      }
+    } else {
+      currentPlayerIdx = (currentPlayerIdx+1) % state.players.length;
+      resetTurn(false);
+    }
+  });
+
+  // ---------- Settings screen wiring ----------
+  var menuIcon = $("menuIcon");
+  var backIconPath = '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 5 5 12 12 19"/>';
+  var menuIconPath = '<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>';
+
+  function openSettings(){
+    settingsScreen.hidden = false;
+    timerScreen.hidden = true;
+    menuIcon.innerHTML = backIconPath;
+    menuBtn.setAttribute("aria-label","Volver");
+    updateTopbarColor();
+    renderSettings();
+  }
+  function closeSettings(){
+    settingsScreen.hidden = true;
+    timerScreen.hidden = false;
+    menuIcon.innerHTML = menuIconPath;
+    menuBtn.setAttribute("aria-label","Ajustes");
+    save();
+    resetTurn(false);
+    updateTopbarColor();
+  }
+  menuBtn.addEventListener("click", function(){
+    if(settingsScreen.hidden) openSettings(); else closeSettings();
+  });
+
+  var minVal = $("minVal"), secVal = $("secVal");
+  document.querySelectorAll(".step-btn[data-step]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var step = btn.getAttribute("data-step");
+      var dir = parseInt(btn.getAttribute("data-dir"),10);
+      if(step === "min"){
+        state.minutes = Math.max(0, Math.min(99, state.minutes + dir));
+      } else if(step === "sec"){
+        state.seconds = Math.max(0, Math.min(99, state.seconds + dir));
+      }
+      if(state.minutes === 0 && state.seconds === 0){
+        if(step === "min") state.seconds = 1; else state.minutes = 0;
+        if(state.minutes===0 && state.seconds===0) state.seconds = 1;
+      }
+      renderSettings();
+    });
+  });
+
+  function wireTimeInput(inp, isMinutes){
+    inp.addEventListener("input", function(){
+      inp.value = inp.value.replace(/[^0-9]/g,"").slice(0,2);
+    });
+    inp.addEventListener("keydown", function(e){
+      if(e.key === "Enter"){ inp.blur(); }
+    });
+    inp.addEventListener("blur", function(){
+      var n = parseInt(inp.value, 10);
+      if(isNaN(n)) n = 0;
+      n = Math.max(0, Math.min(99, n));
+      if(isMinutes) state.minutes = n; else state.seconds = n;
+      if(state.minutes === 0 && state.seconds === 0){
+        if(isMinutes) state.seconds = 1; else state.minutes = 0;
+        if(state.minutes===0 && state.seconds===0) state.seconds = 1;
+      }
+      renderSettings();
+    });
+  }
+  wireTimeInput(minVal, true);
+  wireTimeInput(secVal, false);
+
+  var autoRestartToggle = $("autoRestartToggle");
+  autoRestartToggle.addEventListener("click", function(){
+    state.autoRestart = !state.autoRestart;
+    renderSettings();
+  });
+
+  var playersMinus = $("playersMinus"), playersPlus = $("playersPlus"), playersVal = $("playersVal"), playersList = $("playersList");
+  playersMinus.addEventListener("click", function(){
+    state.playersCount = Math.max(1, state.playersCount - 1);
+    syncPlayersArray();
+    renderSettings();
+  });
+  playersPlus.addEventListener("click", function(){
+    state.playersCount = Math.min(8, state.playersCount + 1);
+    syncPlayersArray();
+    renderSettings();
+  });
+  function syncPlayersArray(){
+    while(state.players.length < state.playersCount){
+      var i = state.players.length;
+      state.players.push({name:"Jugador "+(i+1), color: playerColors[i % playerColors.length]});
+    }
+    state.players.length = state.playersCount;
+  }
+
+  var soundToggle = $("soundToggle"), soundThresholdRow = $("soundThresholdRow");
+  soundToggle.addEventListener("click", function(){
+    state.soundOn = !state.soundOn;
+    renderSettings();
+  });
+  var threshMinus = $("threshMinus"), threshPlus = $("threshPlus");
+  threshMinus.addEventListener("click", function(){
+    state.soundThreshold = Math.max(0, state.soundThreshold - 1);
+    renderSettings();
+  });
+  threshPlus.addEventListener("click", function(){
+    state.soundThreshold = Math.min(90, state.soundThreshold + 1);
+    renderSettings();
+  });
+
+  document.querySelectorAll(".theme-opt").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      state.theme = btn.getAttribute("data-theme");
+      applyTheme();
+      renderSettings();
+    });
+  });
+
+  var chessModeToggle = $("chessModeToggle"), chessIncrementRow = $("chessIncrementRow");
+  chessModeToggle.addEventListener("click", function(){
+    state.chessMode = !state.chessMode;
+    renderSettings();
+  });
+  var incMinus = $("incMinus"), incPlus = $("incPlus");
+  incMinus.addEventListener("click", function(){
+    state.chessIncrement = Math.max(0, state.chessIncrement - 1);
+    renderSettings();
+  });
+  incPlus.addEventListener("click", function(){
+    state.chessIncrement = Math.min(30, state.chessIncrement + 1);
+    renderSettings();
+  });
+
+  function renderSettings(){
+    if(document.activeElement !== minVal) minVal.value = fmt2(state.minutes);
+    if(document.activeElement !== secVal) secVal.value = fmt2(state.seconds);
+    autoRestartToggle.classList.toggle("on", state.autoRestart);
+    playersVal.textContent = state.playersCount;
+    playersMinus.disabled = state.playersCount <= 1;
+    playersPlus.disabled = state.playersCount >= 8;
+
+    playersList.innerHTML = "";
+    state.players.forEach(function(p, i){
+      var row = document.createElement("div");
+      row.className = "player-row";
+      row.innerHTML =
+        '<div class="color-dot" style="background:'+p.color+'"><input type="color" data-idx="'+i+'" class="player-color-input" value="'+p.color+'"></div>' +
+        '<input type="text" class="player-name" data-idx="'+i+'" value="'+escapeHtml(p.name)+'" maxlength="15">';
+      playersList.appendChild(row);
+    });
+    playersList.querySelectorAll(".player-color-input").forEach(function(inp){
+      inp.addEventListener("input", function(){
+        var idx = parseInt(inp.getAttribute("data-idx"),10);
+        state.players[idx].color = inp.value;
+        inp.parentElement.style.background = inp.value;
+      });
+    });
+    playersList.querySelectorAll(".player-name").forEach(function(inp){
+      inp.addEventListener("input", function(){
+        var idx = parseInt(inp.getAttribute("data-idx"),10);
+        state.players[idx].name = inp.value || ("Jugador "+(idx+1));
+      });
+    });
+
+    soundToggle.classList.toggle("on", state.soundOn);
+    soundThresholdRow.style.opacity = state.soundOn ? "1" : ".45";
+    soundThresholdRow.style.pointerEvents = state.soundOn ? "auto" : "none";
+    $("threshVal").textContent = state.soundThreshold;
+
+    chessModeToggle.classList.toggle("on", state.chessMode);
+    chessIncrementRow.style.opacity = state.chessMode ? "1" : ".45";
+    chessIncrementRow.style.pointerEvents = state.chessMode ? "auto" : "none";
+    $("incVal").textContent = state.chessIncrement;
+
+    document.querySelectorAll(".theme-opt").forEach(function(btn){
+      btn.classList.toggle("active", btn.getAttribute("data-theme") === state.theme);
+    });
+  }
+
+  function updateSoundIcon(){
+    soundIcon.innerHTML = state.soundOn
+      ? '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 010 7"/>'
+      : '<path d="M4 9v6h4l5 4V5L8 9H4z"/><line x1="16" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="16" y2="15"/>';
+  }
+  soundIndicator = $("soundIndicator");
+  soundIndicator.addEventListener("click", function(){
+    state.soundOn = !state.soundOn;
+    save();
+    updateSoundIcon();
+  });
+
+  if(window.matchMedia){
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function(){
+      if(state.theme === "system") applyTheme();
+    });
+  }
+
+  // ---------- Init ----------
+  applyTheme();
+  renderSettings();
+  updateSoundIcon();
+  computeTotal();
+  remainingMs = totalMs;
+  if(state.chessMode){
+    playerRemaining = state.players.map(function(){ return totalMs; });
+  }
+  renderDigits(remainingMs);
+  updateFill();
+  updateSubtime();
+  renderPlayersStrip();
+
+  window.addEventListener("beforeunload", save);
+  setInterval(save, 4000);
+
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
+
+})();
+</script>

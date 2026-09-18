@@ -1,7 +1,53 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#3b74d6"/>
-  <rect x="160" y="124" width="192" height="22" rx="11" fill="#ffffff"/>
-  <rect x="160" y="366" width="192" height="22" rx="11" fill="#ffffff"/>
-  <path d="M178,146 L334,146 L256,256 Z" fill="#ffffff"/>
-  <path d="M178,366 L334,366 L256,256 Z" fill="#ffffff"/>
+  <rect width="512" height="512" rx="112" fill="#141826"/>
+
+  <!-- stopwatch crown + button -->
+  <rect x="330" y="118" width="66" height="34" rx="10" fill="#333c52" transform="rotate(45 363 135)"/>
+  <rect x="228" y="96" width="90" height="46" rx="14" fill="#333c52"/>
+  <rect x="252" y="130" width="42" height="34" fill="#333c52"/>
+
+  <!-- outer ring -->
+  <circle cx="270" cy="262" r="158" fill="#333c52"/>
+  <!-- face -->
+  <circle cx="270" cy="262" r="132" fill="#f4eedd"/>
+
+  <!-- red progress wedge (12 o'clock to ~5 o'clock) -->
+  <path d="M270,262 L270,130 A132,132 0 0 1 371,347 Z" fill="#e8402c"/>
+
+  <!-- tick marks -->
+  <g fill="#16171c">
+    <rect x="262" y="140" width="16" height="22" rx="6"/>
+    <rect x="262" y="140" width="16" height="22" rx="6" transform="rotate(45 270 262)"/>
+    <rect x="262" y="140" width="16" height="22" rx="6" transform="rotate(90 270 262)"/>
+    <rect x="262" y="140" width="16" height="22" rx="6" transform="rotate(135 270 262)"/>
+    <rect x="262" y="140" width="16" height="22" rx="6" transform="rotate(180 270 262)"/>
+    <rect x="262" y="140" width="16" height="22" rx="6" transform="rotate(225 270 262)"/>
+    <rect x="262" y="140" width="16" height="22" rx="6" transform="rotate(270 270 262)"/>
+    <rect x="262" y="140" width="16" height="22" rx="6" transform="rotate(315 270 262)"/>
+  </g>
+
+  <!-- hand + hub -->
+  <line x1="270" y1="262" x2="357" y2="333" stroke="#16171c" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="270" cy="262" r="17" fill="#16171c"/>
+
+  <!-- pawn -->
+  <g>
+    <ellipse cx="150" cy="452" rx="66" ry="14" fill="#0b0d14" opacity=".35"/>
+    <path d="M108,452 C108,414 122,396 150,396 C178,396 192,414 192,452 Z" fill="#e8402c"/>
+    <rect x="118" y="382" width="64" height="20" rx="8" fill="#e8402c"/>
+    <circle cx="150" cy="352" r="34" fill="#e8402c"/>
+  </g>
+
+  <!-- die -->
+  <g>
+    <rect x="356" y="358" width="110" height="110" rx="20" fill="#0b0d14" opacity=".25" transform="rotate(12 411 413)"/>
+    <rect x="350" y="350" width="110" height="110" rx="20" fill="#f4eedd" transform="rotate(12 405 405)"/>
+    <g fill="#16171c" transform="rotate(12 405 405)">
+      <circle cx="375" cy="375" r="9"/>
+      <circle cx="435" cy="375" r="9"/>
+      <circle cx="405" cy="405" r="9"/>
+      <circle cx="375" cy="435" r="9"/>
+      <circle cx="435" cy="435" r="9"/>
+    </g>
+  </g>
 </svg>

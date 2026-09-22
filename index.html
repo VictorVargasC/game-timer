@@ -69,7 +69,7 @@
     display:flex;
     align-items:center;
     justify-content:space-between;
-    padding:14px 18px;
+    padding:max(8px, env(safe-area-inset-top)) 18px 14px 18px;
     z-index:6;
     background:transparent;
     color:var(--ink);
@@ -92,6 +92,7 @@
     font-size:14px;
     text-transform:uppercase;
     color:inherit;
+    display:none;
   }
 
   /* ---------- Timer screen ---------- */
@@ -100,7 +101,7 @@
     display:flex;
     flex-direction:column;
     position:relative;
-    padding-top:60px;
+    padding-top:54px;
   }
   .fill-stage{
     position:absolute;
@@ -625,9 +626,7 @@
   }
 
   function activeColorHex(){
-    if(state.playersCount > 1) return activePlayer().color;
-    var cs = getComputedStyle(document.documentElement);
-    return toHex(cs.getPropertyValue("--accent").trim());
+    return activePlayer().color;
   }
 
   function contrastColor(hex){
@@ -879,6 +878,7 @@
     menuBtn.setAttribute("aria-label","Volver");
     updateTopbarColor();
     renderSettings();
+    history.pushState({screen:"settings"}, "", "");
   }
   function closeSettings(){
     settingsScreen.hidden = true;
@@ -891,6 +891,12 @@
   }
   menuBtn.addEventListener("click", function(){
     if(settingsScreen.hidden) openSettings(); else closeSettings();
+  });
+  window.addEventListener("popstate", function(e){
+    if(!settingsScreen.hidden){
+      closeSettings();
+      history.pushState({screen:"timer"}, "", "");
+    }
   });
 
   var minVal = $("minVal"), secVal = $("secVal");
@@ -908,6 +914,7 @@
         if(state.minutes===0 && state.seconds===0) state.seconds = 1;
       }
       renderSettings();
+      save();
     });
   });
 
@@ -928,6 +935,7 @@
         if(state.minutes===0 && state.seconds===0) state.seconds = 1;
       }
       renderSettings();
+      save();
     });
   }
   wireTimeInput(minVal, true);
@@ -937,6 +945,7 @@
   autoRestartToggle.addEventListener("click", function(){
     state.autoRestart = !state.autoRestart;
     renderSettings();
+    save();
   });
 
   var playersMinus = $("playersMinus"), playersPlus = $("playersPlus"), playersVal = $("playersVal"), playersList = $("playersList");
@@ -944,11 +953,13 @@
     state.playersCount = Math.max(1, state.playersCount - 1);
     syncPlayersArray();
     renderSettings();
+    save();
   });
   playersPlus.addEventListener("click", function(){
     state.playersCount = Math.min(8, state.playersCount + 1);
     syncPlayersArray();
     renderSettings();
+    save();
   });
   function syncPlayersArray(){
     while(state.players.length < state.playersCount){
@@ -962,15 +973,18 @@
   soundToggle.addEventListener("click", function(){
     state.soundOn = !state.soundOn;
     renderSettings();
+    save();
   });
   var threshMinus = $("threshMinus"), threshPlus = $("threshPlus");
   threshMinus.addEventListener("click", function(){
     state.soundThreshold = Math.max(0, state.soundThreshold - 1);
     renderSettings();
+    save();
   });
   threshPlus.addEventListener("click", function(){
     state.soundThreshold = Math.min(90, state.soundThreshold + 1);
     renderSettings();
+    save();
   });
 
   document.querySelectorAll(".theme-opt").forEach(function(btn){
@@ -978,6 +992,7 @@
       state.theme = btn.getAttribute("data-theme");
       applyTheme();
       renderSettings();
+      save();
     });
   });
 
@@ -985,15 +1000,18 @@
   chessModeToggle.addEventListener("click", function(){
     state.chessMode = !state.chessMode;
     renderSettings();
+    save();
   });
   var incMinus = $("incMinus"), incPlus = $("incPlus");
   incMinus.addEventListener("click", function(){
     state.chessIncrement = Math.max(0, state.chessIncrement - 1);
     renderSettings();
+    save();
   });
   incPlus.addEventListener("click", function(){
     state.chessIncrement = Math.min(30, state.chessIncrement + 1);
     renderSettings();
+    save();
   });
 
   function renderSettings(){
@@ -1018,12 +1036,15 @@
         var idx = parseInt(inp.getAttribute("data-idx"),10);
         state.players[idx].color = inp.value;
         inp.parentElement.style.background = inp.value;
+        updateFill();
+        save();
       });
     });
     playersList.querySelectorAll(".player-name").forEach(function(inp){
       inp.addEventListener("input", function(){
         var idx = parseInt(inp.getAttribute("data-idx"),10);
         state.players[idx].name = inp.value || ("Jugador "+(idx+1));
+        save();
       });
     });
 

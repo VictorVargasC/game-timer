@@ -654,6 +654,8 @@
     fillEl.style.background = activeColorHex();
     updateControlColors();
     updateTopbarColor();
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if(meta) meta.setAttribute("content", activeColorHex());
   }
 
   function updateTopbarColor(){
@@ -1068,7 +1070,7 @@
       ? '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 010 7"/>'
       : '<path d="M4 9v6h4l5 4V5L8 9H4z"/><line x1="16" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="16" y2="15"/>';
   }
-  soundIndicator = $("soundIndicator");
+  var soundIndicator = $("soundIndicator");
   soundIndicator.addEventListener("click", function(){
     state.soundOn = !state.soundOn;
     save();
@@ -1103,6 +1105,17 @@
       navigator.serviceWorker.register("sw.js").catch(function(){});
     });
   }
+
+  // Pedir pantalla completa inmersiva (oculta la barra de botones de Android)
+  // en el primer toque, ya que el navegador exige un gesto del usuario.
+  function tryFullscreen(){
+    var el = document.documentElement;
+    if(document.fullscreenElement) return;
+    var req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if(req){ req.call(el).catch(function(){}); }
+  }
+  document.addEventListener("click", tryFullscreen, {once:true});
+  window.addEventListener("load", tryFullscreen);
 
 })();
 </script>

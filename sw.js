@@ -1,4 +1,4 @@
-var CACHE_NAME = "game-timer-v3";
+var CACHE_NAME = "game-timer-v4";
 var SHELL = ["./index.html", "./manifest.json", "./icon.png", "./icon-maskable.png"];
 
 self.addEventListener("install", function(event){
